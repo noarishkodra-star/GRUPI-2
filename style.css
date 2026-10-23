@@ -1,3 +1,4 @@
+```css
 * {
     margin: 0;
     padding: 0;
@@ -165,13 +166,29 @@ footer {
     font-weight: bold;
 }
 
+/* Mesazhet e hyrjes dhe regjistrimit */
 .message {
-    background: #e7eddf;
-    color: #263f30;
     padding: 12px;
     border-radius: 6px;
     overflow-wrap: anywhere;
+    margin-bottom: 15px;
+    text-align: center;
 }
+
+/* Mesazhi kur emri ose fjalëkalimi është gabim */
+.message.error {
+    background: #ffe5e5;
+    color: #d00000;
+    border: 1px solid #ffb3b3;
+}
+
+/* Mesazhi kur regjistrimi është i suksesshëm */
+.message.success {
+    background: #e2f2e5;
+    color: #245b31;
+    border: 1px solid #a3d9ad;
+}
+
 .users-page {
     max-width: 1200px;
     margin: 45px auto;
@@ -258,3 +275,5 @@ footer {
         padding: 10px;
     }
 }
+```
+
