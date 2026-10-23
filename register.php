@@ -5,6 +5,7 @@ $mesazhi = "";
 $emri = "";
 $username = "";
 $email = "";
+$roli = "";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $emri = trim($_POST["emri"] ?? "");
@@ -25,14 +26,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $mesazhi = "Shkruaj një email të vlefshëm.";
     } elseif (strlen($password) < 8) {
         $mesazhi = "Fjalëkalimi duhet t'i ketë së paku 8 karaktere.";
-    } elseif (!in_array($roli, ["nxenes"], true)) {
-        $mesazhi = "Regjistrimi publik lejohet vetëm për nxënës.";
+    } elseif (!in_array($roli, ["nxenes", "puntor/e"], true)) {
+        $mesazhi = "Roli i zgjedhur nuk lejohet.";
     } else {
         $kontrollo = $conn->prepare(
             "SELECT id FROM users WHERE username = ? OR email = ?"
         );
+
         $kontrollo->bind_param("ss", $username, $email);
         $kontrollo->execute();
+
         $rezultati = $kontrollo->get_result();
 
         if ($rezultati->num_rows > 0) {
@@ -72,6 +75,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="sq">
 <head>
@@ -84,6 +88,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 <header>
     <h2>📚 Biblioteka Ime</h2>
+
     <nav>
         <a href="index.php">Ballina</a>
         <a href="login.php">Hyr</a>
@@ -92,12 +97,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 <main class="auth-container">
     <form class="auth-card" method="POST" action="register.php">
+
         <h1>Krijo llogari</h1>
         <p>Regjistrohu në sistemin e bibliotekës.</p>
 
         <?php if ($mesazhi !== ""): ?>
             <p class="message">
-                <?= htmlspecialchars($mesazhi) ?>
+                <?= htmlspecialchars($mesazhi, ENT_QUOTES, 'UTF-8') ?>
             </p>
         <?php endif; ?>
 
@@ -106,7 +112,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             type="text"
             id="emri"
             name="emri"
-            value="<?= htmlspecialchars($emri) ?>"
+            value="<?= htmlspecialchars($emri, ENT_QUOTES, 'UTF-8') ?>"
+            maxlength="100"
             required
         >
 
@@ -115,7 +122,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             type="text"
             id="username"
             name="username"
-            value="<?= htmlspecialchars($username) ?>"
+            value="<?= htmlspecialchars($username, ENT_QUOTES, 'UTF-8') ?>"
+            maxlength="50"
             required
         >
 
@@ -124,23 +132,23 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             type="email"
             id="email"
             name="email"
-            value="<?= htmlspecialchars($email) ?>"
+            value="<?= htmlspecialchars($email, ENT_QUOTES, 'UTF-8') ?>"
+            maxlength="100"
             required
         >
 
         <label for="roli">Regjistrohu si</label>
         <select id="roli" name="roli" required>
-          <option value="">-- Zgjedh rolin --</option>
+            <option value="">-- Zgjedh rolin --</option>
+
             <option value="nxenes"
-                <?= (($_POST["roli"] ?? "") === "nxenes") ? "selected" : "" ?>>
+                <?= $roli === "nxenes" ? "selected" : "" ?>>
                 Nxënës
+            </option>
+
             <option value="puntor/e"
-                <?= (($_POST["roli"] ?? "") === "puntor/e") ? "selected" : "" ?>>
-                Puntor/e
-            <option value="administrator"
-                <?= (($_POST["roli"] ?? "") === "administrator") ? "selected" : "" ?>>
-                administrator          
-        
+                <?= $roli === "puntor/e" ? "selected" : "" ?>>
+                Punëtor/e
             </option>
         </select>
 
@@ -150,6 +158,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             id="password"
             name="password"
             minlength="8"
+            autocomplete="new-password"
             required
         >
 
@@ -159,6 +168,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             Ke llogari?
             <a href="login.php">Hyr këtu</a>
         </p>
+
     </form>
 </main>
 
@@ -168,3 +178,4 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 </body>
 </html>
+
