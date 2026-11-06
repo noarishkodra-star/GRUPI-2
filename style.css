@@ -672,3 +672,26 @@ header.topbar nav a:last-child:hover {
     background: var(--gold-light);
     transform: translateY(-2px);
 }
+/* Butoni Krijo Llogari */
+.hero a:not(.btn):not(.button) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 22px;
+    margin-left: 8px;
+    min-height: 49px;
+    border: 1px solid rgba(255,255,255,.55);
+    border-radius: 10px;
+    background: rgba(255,255,255,.08);
+    color: white;
+    font-weight: 700;
+    text-decoration: none;
+    transition: .3s;
+}
+
+.hero a:not(.btn):not(.button):hover {
+    background: #f0d58b;
+    color: #102442;
+    border-color: #f0d58b;
+    transform: translateY(-2px);
+}
