@@ -1,3 +1,4 @@
+
 <?php
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -8,6 +9,10 @@ require_once "db.php";
 $kycur = isset($_SESSION["user_id"]);
 $roli = $_SESSION["roli"] ?? "";
 $emri = $_SESSION["emri"] ?? "";
+
+$faqjaLibrave = ($kycur && $roli !== "administrator")
+    ? "explorimilibrat.php"
+    : "books.php";
 
 $kerkimi = trim($_GET["kerko"] ?? "");
 $librat = [];
@@ -41,6 +46,8 @@ try {
             }
 
             $stmt->close();
+        } else {
+            $gabim = true;
         }
     } else {
         $sql = "SELECT id, titulli, autori, kategoria, sasia
@@ -50,15 +57,19 @@ try {
 
         $rezultati = $conn->query($sql);
 
-        while ($libri = $rezultati->fetch_assoc()) {
-            $librat[] = $libri;
+        if ($rezultati) {
+            while ($libri = $rezultati->fetch_assoc()) {
+                $librat[] = $libri;
+            }
+        } else {
+            $gabim = true;
         }
     }
 } catch (Throwable $e) {
     $gabim = true;
 }
-
 ?>
+
 <!DOCTYPE html>
 <html lang="sq">
 <head>
@@ -105,9 +116,8 @@ try {
             top: -110px;
             border: 1px solid rgba(255,255,255,.13);
             border-radius: 50%;
-            box-shadow:
-                0 0 0 35px rgba(255,255,255,.035),
-                0 0 0 70px rgba(255,255,255,.025);
+            box-shadow: 0 0 0 35px rgba(255,255,255,.035),
+                        0 0 0 70px rgba(255,255,255,.025);
         }
 
         .hero-content {
@@ -191,9 +201,8 @@ try {
             border: 1px solid rgba(255,255,255,.25);
             border-radius: 14px 24px 24px 14px;
             background: linear-gradient(145deg, #f6c977, #dc9341);
-            box-shadow:
-                15px 18px 35px rgba(0,0,0,.25),
-                inset 9px 0 rgba(115, 61, 25, .13);
+            box-shadow: 15px 18px 35px rgba(0,0,0,.25),
+                        inset 9px 0 rgba(115, 61, 25, .13);
             font-size: 85px;
             transform: rotate(7deg);
             animation: homeFloat 4s ease-in-out infinite;
@@ -624,7 +633,8 @@ try {
 
     <nav aria-label="Navigimi kryesor">
         <a href="index.php" class="active">Ballina</a>
-        <a href="books.php">Librat</a>
+
+        <a href="<?= h($faqjaLibrave) ?>">Librat</a>
 
         <?php if ($kycur): ?>
             <a href="dashboard.php">Paneli</a>
@@ -652,6 +662,7 @@ try {
 
     <section class="hero">
         <div class="hero-content">
+
             <div class="hero-label">
                 <span aria-hidden="true">✦</span>
                 HAPËSIRA JOTE E LEXIMIT
@@ -665,7 +676,9 @@ try {
             </p>
 
             <div class="hero-actions">
-                <a href="books.php" class="button">Eksploro librat →</a>
+                <a href="<?= h($faqjaLibrave) ?>" class="button">
+                    Eksploro librat →
+                </a>
 
                 <?php if (!$kycur): ?>
                     <a href="register.php" class="button-light">Krijo llogari</a>
@@ -673,6 +686,7 @@ try {
                     <a href="dashboard.php" class="button-light">Hape panelin</a>
                 <?php endif; ?>
             </div>
+
         </div>
 
         <div class="hero-art" aria-hidden="true">
@@ -681,10 +695,12 @@ try {
     </section>
 
     <section class="home-search" id="kerkimi">
+
         <h2>Gjej librin që po kërkon 🔎</h2>
         <p>Kërko me titull, emër autori ose kategori.</p>
 
         <form action="index.php" method="GET">
+
             <input
                 type="search"
                 name="kerko"
@@ -694,10 +710,12 @@ try {
             >
 
             <button type="submit" class="button">Kërko libra</button>
+
         </form>
     </section>
 
     <section class="home-section">
+
         <div class="home-section-heading">
             <div>
                 <span class="home-eyebrow">KOLEKSIONI YNË</span>
@@ -713,7 +731,9 @@ try {
                 </p>
             </div>
 
-            <a href="books.php" class="home-view-all">Shiko të gjithë librat →</a>
+            <a href="<?= h($faqjaLibrave) ?>" class="home-view-all">
+                Shiko të gjithë librat →
+            </a>
         </div>
 
         <div class="book-grid">
@@ -729,6 +749,7 @@ try {
             <?php elseif (count($librat) > 0): ?>
 
                 <?php foreach ($librat as $libri): ?>
+
                     <article class="book-card">
 
                         <div class="home-book-icon" aria-hidden="true">📘</div>
@@ -749,6 +770,7 @@ try {
 
                         <div class="home-book-stock">
                             <span>Gjendja</span>
+
                             <strong>
                                 <?= (int)$libri["sasia"] > 0
                                     ? "Në dispozicion"
@@ -757,6 +779,7 @@ try {
                         </div>
 
                     </article>
+
                 <?php endforeach; ?>
 
             <?php else: ?>
@@ -765,13 +788,21 @@ try {
                     <span>📚</span>
 
                     <?php if ($kerkimi !== ""): ?>
+
                         <h3>Nuk u gjet asnjë libër</h3>
                         <p>Provo të kërkosh me një titull ose autor tjetër.</p>
+
                         <br>
-                        <a href="index.php" class="button">Shfaq të gjithë librat</a>
+
+                        <a href="index.php" class="button">
+                            Shfaq të gjithë librat
+                        </a>
+
                     <?php else: ?>
+
                         <h3>Biblioteka po pret librat e parë</h3>
                         <p>Sapo të regjistrohen libra, ata do të shfaqen këtu.</p>
+
                     <?php endif; ?>
                 </div>
 
@@ -781,6 +812,7 @@ try {
     </section>
 
     <section class="home-section">
+
         <div class="home-section-heading">
             <div>
                 <span class="home-eyebrow">PËRVOJA JOTE</span>
@@ -793,52 +825,74 @@ try {
 
             <article class="home-feature">
                 <div class="home-feature-icon" aria-hidden="true">🔎</div>
+
                 <h3>Kërkim i shpejtë</h3>
+
                 <p>
                     Gjej librat sipas titullit, autorit ose kategorisë
                     pa pasur nevojë të kërkosh një nga një.
                 </p>
+
                 <a href="#kerkimi">Fillo kërkimin →</a>
             </article>
 
             <article class="home-feature">
                 <div class="home-feature-icon" aria-hidden="true">📚</div>
+
                 <h3>Koleksioni i librave</h3>
+
                 <p>
                     Shfleto librat e regjistruar dhe shiko informacionet
                     kryesore për secilin prej tyre.
                 </p>
-                <a href="books.php">Shfleto librat →</a>
+
+                <a href="<?= h($faqjaLibrave) ?>">Shfleto librat →</a>
             </article>
 
             <article class="home-feature">
                 <div class="home-feature-icon" aria-hidden="true">👤</div>
+
                 <h3>Llogaria jote</h3>
 
                 <?php if ($kycur): ?>
+
                     <p>
                         Vazhdo te paneli yt për të përdorur funksionet
                         e disponueshme për llogarinë tënde.
                     </p>
+
                     <a href="dashboard.php">Hape panelin →</a>
+
                 <?php else: ?>
+
                     <p>
                         Krijo një llogari për të hyrë në funksionet
                         që ofron Biblioteka Ime.
                     </p>
+
                     <a href="register.php">Regjistrohu →</a>
+
                 <?php endif; ?>
+
             </article>
 
         </div>
     </section>
 
     <?php if (!$kycur): ?>
+
         <section class="home-cta">
+
             <h2>Gati për të zbuluar librin tënd të radhës?</h2>
+
             <p>Hyr në Biblioteka Ime dhe fillo të eksplorosh.</p>
-            <a href="register.php" class="button">Krijo llogari falas →</a>
+
+            <a href="register.php" class="button">
+                Krijo llogari falas →
+            </a>
+
         </section>
+
     <?php endif; ?>
 
 </main>
@@ -852,4 +906,3 @@ try {
 
 </body>
 </html>
-
