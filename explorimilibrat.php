@@ -1,4 +1,3 @@
-
 <?php
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -6,15 +5,35 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once "db.php";
 
-// Kontrollo kyçjen
 if (!isset($_SESSION["user_id"])) {
     header("Location: login.php");
     exit;
 }
 
 $user_id = (int)$_SESSION["user_id"];
-$emri = $_SESSION["emri"] ?? "Përdorues";
-$roli = strtolower(trim($_SESSION["roli"] ?? ""));
+
+/* Merr të dhënat e përdoruesit nga databaza */
+$stmt = $conn->prepare(
+    "SELECT emri, roli FROM users WHERE id = ?"
+);
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$perdoruesi = $stmt->get_result()->fetch_assoc();
+$stmt->close();
+
+if (!$perdoruesi) {
+    session_destroy();
+    header("Location: login.php");
+    exit;
+}
+
+$emri = $perdoruesi["emri"] ?? "Përdorues";
+$roli = strtolower(trim($perdoruesi["roli"] ?? ""));
+
+$eshteAdmin = in_array($roli, [
+    "administrator",
+    "admin"
+], true);
 
 $eshteNxenes = in_array($roli, [
     "nxenes/e",
@@ -23,6 +42,9 @@ $eshteNxenes = in_array($roli, [
     "nxënës/e"
 ], true);
 
+$_SESSION["emri"] = $emri;
+$_SESSION["roli"] = $roli;
+
 $mesazhi = "";
 $llojiMesazhit = "";
 
@@ -30,178 +52,153 @@ function h($vlera) {
     return htmlspecialchars((string)$vlera, ENT_QUOTES, "UTF-8");
 }
 
-// ======================================
-// REZERVIMI I LIBRIT
-// ======================================
+/* CSRF */
+if (empty($_SESSION["csrf_token"])) {
+    $_SESSION["csrf_token"] = bin2hex(random_bytes(32));
+}
 
-if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["action"])) {
+/* REZERVIMI - VETËM NXËNËSIT */
+if ($_SERVER["REQUEST_METHOD"] === "POST" &&
+    ($_POST["action"] ?? "") === "rezervo") {
 
-    if ($_POST["action"] === "rezervo") {
+    if (!$eshteNxenes) {
+        $mesazhi = "Vetëm nxënësit mund të rezervojnë libra.";
+        $llojiMesazhit = "gabim";
 
-        if (!$eshteNxenes) {
-            $mesazhi = "Vetëm nxënësit mund të rezervojnë libra.";
+    } elseif (
+        !hash_equals(
+            $_SESSION["csrf_token"],
+            $_POST["csrf_token"] ?? ""
+        )
+    ) {
+        $mesazhi = "Kërkesa nuk është e vlefshme. Rifresko faqen.";
+        $llojiMesazhit = "gabim";
+
+    } else {
+
+        $libri_id = (int)($_POST["libri_id"] ?? 0);
+        $ditet = (int)($_POST["ditet"] ?? 0);
+
+        if ($libri_id <= 0 || $ditet < 1 || $ditet > 7) {
+            $mesazhi = "Të dhënat e rezervimit nuk janë të vlefshme.";
             $llojiMesazhit = "gabim";
 
         } else {
 
-            $libri_id = (int)($_POST["libri_id"] ?? 0);
-            $ditet = (int)($_POST["ditet"] ?? 0);
+            $filloi = false;
 
-            if ($libri_id <= 0) {
-                $mesazhi = "Libri nuk u identifikua.";
-                $llojiMesazhit = "gabim";
+            try {
+                $conn->begin_transaction();
+                $filloi = true;
 
-            } elseif ($ditet < 1 || $ditet > 7) {
-                $mesazhi = "Zgjidh një afat nga 1 deri në 7 ditë.";
-                $llojiMesazhit = "gabim";
+                $stmt = $conn->prepare(
+                    "SELECT id, sasia FROM books WHERE id = ? FOR UPDATE"
+                );
+                $stmt->bind_param("i", $libri_id);
+                $stmt->execute();
+                $libri = $stmt->get_result()->fetch_assoc();
+                $stmt->close();
 
-            } else {
-
-                $transaksioniFilloi = false;
-
-                try {
-                    $conn->begin_transaction();
-                    $transaksioniFilloi = true;
-
-                    // Kontrollo librin dhe kopjet
-                    $stmt = $conn->prepare(
-                        "SELECT id, sasia
-                         FROM books
-                         WHERE id = ?
-                         FOR UPDATE"
-                    );
-
-                    if (!$stmt) {
-                        throw new Exception($conn->error);
-                    }
-
-                    $stmt->bind_param("i", $libri_id);
-                    $stmt->execute();
-
-                    $libri = $stmt->get_result()->fetch_assoc();
-                    $stmt->close();
-
-                    if (!$libri) {
-                        throw new Exception("Ky libër nuk ekziston.");
-                    }
-
-                    if ((int)$libri["sasia"] <= 0) {
-                        throw new Exception("Ky libër nuk ka kopje të lira.");
-                    }
-
-                    // Kontrollo rezervimet aktive
-                    $stmt = $conn->prepare(
-                        "SELECT id
-                         FROM borrowings
-                         WHERE user_id = ?
-                         AND book_id = ?
-                         AND statusi IN ('rezervuar', 'huazuar')
-                         LIMIT 1"
-                    );
-
-                    if (!$stmt) {
-                        throw new Exception($conn->error);
-                    }
-
-                    $stmt->bind_param("ii", $user_id, $libri_id);
-                    $stmt->execute();
-
-                    $ekziston = $stmt->get_result()->num_rows > 0;
-                    $stmt->close();
-
-                    if ($ekziston) {
-                        throw new Exception(
-                            "Ti tashmë e ke rezervuar këtë libër."
-                        );
-                    }
-
-                    // Zvogëlo sasinë për një kopje
-                    $stmt = $conn->prepare(
-                        "UPDATE books
-                         SET sasia = sasia - 1
-                         WHERE id = ? AND sasia > 0"
-                    );
-
-                    if (!$stmt) {
-                        throw new Exception($conn->error);
-                    }
-
-                    $stmt->bind_param("i", $libri_id);
-                    $stmt->execute();
-
-                    if ($stmt->affected_rows !== 1) {
-                        throw new Exception("Nuk ka kopje të lira.");
-                    }
-
-                    $stmt->close();
-
-                    // Regjistro rezervimin me afatin e zgjedhur
-                    $stmt = $conn->prepare(
-                        "INSERT INTO borrowings
-                         (user_id, book_id, data_huazimit,
-                          data_kthimit, statusi)
-                         VALUES (
-                             ?, ?,
-                             CURDATE(),
-                             DATE_ADD(CURDATE(), INTERVAL ? DAY),
-                             'rezervuar'
-                         )"
-                    );
-
-                    if (!$stmt) {
-                        throw new Exception($conn->error);
-                    }
-
-                    $stmt->bind_param("iii", $user_id, $libri_id, $ditet);
-                    $stmt->execute();
-                    $stmt->close();
-
-                    $conn->commit();
-                    $transaksioniFilloi = false;
-
-                    $mesazhi = "Libri u rezervua me sukses për $ditet ditë!";
-                    $llojiMesazhit = "sukses";
-
-                } catch (Throwable $e) {
-
-                    if ($transaksioniFilloi) {
-                        $conn->rollback();
-                    }
-
-                    $mesazhi = "Gabim gjatë rezervimit: " . $e->getMessage();
-                    $llojiMesazhit = "gabim";
+                if (!$libri) {
+                    throw new Exception("Ky libër nuk ekziston.");
                 }
+
+                if ((int)$libri["sasia"] <= 0) {
+                    throw new Exception("Ky libër nuk ka kopje të lira.");
+                }
+
+                $stmt = $conn->prepare(
+                    "SELECT id FROM borrowings
+                     WHERE user_id = ?
+                     AND book_id = ?
+                     AND statusi IN (
+                         'rezervuar',
+                         'huazuar',
+                         'kerkese_kthimi'
+                     )
+                     LIMIT 1"
+                );
+
+                $stmt->bind_param("ii", $user_id, $libri_id);
+                $stmt->execute();
+
+                $ekziston = $stmt->get_result()->num_rows > 0;
+                $stmt->close();
+
+                if ($ekziston) {
+                    throw new Exception(
+                        "Ti tashmë e ke rezervuar ose huazuar këtë libër."
+                    );
+                }
+
+                $stmt = $conn->prepare(
+                    "UPDATE books SET sasia = sasia - 1
+                     WHERE id = ? AND sasia > 0"
+                );
+
+                $stmt->bind_param("i", $libri_id);
+                $stmt->execute();
+
+                if ($stmt->affected_rows !== 1) {
+                    throw new Exception("Nuk ka kopje të lira.");
+                }
+
+                $stmt->close();
+
+                $stmt = $conn->prepare(
+                    "INSERT INTO borrowings
+                    (user_id, book_id, data_huazimit, data_kthimit, statusi)
+                    VALUES (
+                        ?, ?,
+                        CURDATE(),
+                        DATE_ADD(CURDATE(), INTERVAL ? DAY),
+                        'rezervuar'
+                    )"
+                );
+
+                $stmt->bind_param("iii", $user_id, $libri_id, $ditet);
+                $stmt->execute();
+                $stmt->close();
+
+                $conn->commit();
+                $filloi = false;
+
+                $mesazhi = "Libri u rezervua me sukses për $ditet ditë!";
+                $llojiMesazhit = "sukses";
+
+            } catch (Throwable $e) {
+
+                if ($filloi) {
+                    $conn->rollback();
+                }
+
+                $mesazhi = "Gabim gjatë rezervimit: " . $e->getMessage();
+                $llojiMesazhit = "gabim";
             }
         }
     }
 }
 
-// ======================================
-// MARRJA E LIBRAVE
-// ======================================
-
-$sql = "SELECT id, titulli, autori, kategoria, sasia, kopertina
-        FROM books
-        ORDER BY id DESC";
-
-$result = $conn->query($sql);
+/* MERR LIBRAT */
+$result = $conn->query(
+    "SELECT id, titulli, autori, kategoria, sasia, kopertina
+     FROM books
+     ORDER BY id DESC"
+);
 
 if (!$result) {
-    die("Gabim gjatë marrjes së librave: " . h($conn->error));
+    die("Gabim gjatë marrjes së librave.");
 }
 ?>
 
 <!DOCTYPE html>
 <html lang="sq">
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Eksploro librat - Biblioteka Ime</title>
 
 <style>
-
 * {
     margin: 0;
     padding: 0;
@@ -215,14 +212,15 @@ body {
 }
 
 header {
-    background: #102442;
+    background: linear-gradient(120deg, #102442, #173f70);
     color: white;
-    padding: 18px 7%;
+    padding: 18px 5%;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
     gap: 15px;
+    border-bottom: 4px solid #d8b66a;
 }
 
 .logo {
@@ -230,28 +228,36 @@ header {
     font-weight: bold;
 }
 
+.logo span {
+    color: #d8b66a;
+}
+
 nav {
     display: flex;
-    gap: 20px;
+    gap: 10px;
     flex-wrap: wrap;
 }
 
-nav a {
-    color: white;
-    text-decoration: none;
+nav a,
+nav a:visited,
+nav a:active {
+    color: white !important;
+    text-decoration: none !important;
     font-weight: bold;
-    transition: .3s;
+    padding: 10px 13px;
+    border-radius: 8px;
+    transition: .2s;
 }
 
 nav a:hover {
-    color: #d8b66a;
+    background: #d8b66a;
+    color: #102442 !important;
 }
 
 .hero {
     background:
         linear-gradient(rgba(16,36,66,.90), rgba(16,36,66,.90)),
         url("images/biblioteka.jpg") center/cover;
-
     color: white;
     text-align: center;
     padding: 65px 20px;
@@ -264,10 +270,11 @@ nav a:hover {
 
 .hero p {
     color: #e1e8f2;
+    line-height: 1.6;
 }
 
 .container {
-    width: 90%;
+    width: 92%;
     max-width: 1250px;
     margin: 40px auto;
 }
@@ -337,7 +344,7 @@ nav a:hover {
 .kopertina img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
 }
 
 .pa-kopertine {
@@ -375,7 +382,6 @@ nav a:hover {
     background: white;
     color: #102442;
     font-size: 15px;
-    cursor: pointer;
 }
 
 .btn-rezervo {
@@ -410,6 +416,7 @@ nav a:hover {
     padding: 45px 20px;
     border-radius: 15px;
     color: #64748b;
+    grid-column: 1 / -1;
 }
 
 footer {
@@ -421,7 +428,6 @@ footer {
 }
 
 @media(max-width: 600px) {
-
     header {
         justify-content: center;
         text-align: center;
@@ -439,16 +445,13 @@ footer {
         width: 94%;
     }
 }
-
 </style>
-
 </head>
 
 <body>
 
 <header>
-
-    <div class="logo">📚 Biblioteka Ime</div>
+    <div class="logo">📚 Biblioteka <span>Ime</span></div>
 
     <nav>
         <a href="index.php">Ballina</a>
@@ -458,33 +461,33 @@ footer {
         <a href="profile.php">Profili</a>
         <a href="logout.php">Dil</a>
     </nav>
-
 </header>
 
 <section class="hero">
-
     <h1>Eksploro librat</h1>
-
     <p>
         Përshëndetje, <?= h($emri) ?>!
         Gjej librin që dëshiron të lexosh.
     </p>
-
 </section>
 
 <main class="container">
 
     <div class="titulli">
         <h2>Lista e librave</h2>
-        <p>Zgjidh librin dhe cakto sa ditë dëshiron ta rezervosh.</p>
+        <p>
+            <?php if ($eshteAdmin): ?>
+                Shiko të gjithë librat e regjistruar në bibliotekë.
+            <?php else: ?>
+                Zgjidh librin dhe cakto sa ditë dëshiron ta rezervosh.
+            <?php endif; ?>
+        </p>
     </div>
 
     <?php if ($mesazhi !== ""): ?>
-
         <div class="mesazhi <?= h($llojiMesazhit) ?>">
             <?= h($mesazhi) ?>
         </div>
-
     <?php endif; ?>
 
     <?php if ($result->num_rows > 0): ?>
@@ -496,32 +499,23 @@ footer {
                 <article class="libri">
 
                     <div class="kopertina">
-
                         <?php
                         $kopertina = trim($libri["kopertina"] ?? "");
-                        $rrugaKopertines = "uploads/kopertina/" . basename($kopertina);
+                        $rruga = "uploads/kopertina/" . rawurlencode(basename($kopertina));
                         ?>
 
                         <?php if ($kopertina !== ""): ?>
-
                             <img
-                                src="<?= h($rrugaKopertines) ?>"
+                                src="<?= h($rruga) ?>"
                                 alt="<?= h($libri["titulli"]) ?>"
                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
                             >
-
                             <span class="pa-kopertine" style="display:none;">
                                 Kopertina nuk u gjet
                             </span>
-
                         <?php else: ?>
-
-                            <span class="pa-kopertine">
-                                Pa kopertinë
-                            </span>
-
+                            <span class="pa-kopertine">Pa kopertinë</span>
                         <?php endif; ?>
-
                     </div>
 
                     <div class="libri-info">
@@ -548,11 +542,11 @@ footer {
 
                                 <form method="POST" action="explorimilibrat.php">
 
-                                    <input
-                                        type="hidden"
-                                        name="libri_id"
-                                        value="<?= (int)$libri["id"] ?>"
-                                    >
+                                    <input type="hidden" name="csrf_token"
+                                           value="<?= h($_SESSION["csrf_token"]) ?>">
+
+                                    <input type="hidden" name="libri_id"
+                                           value="<?= (int)$libri["id"] ?>">
 
                                     <label for="ditet-<?= (int)$libri["id"] ?>">
                                         Sa ditë dëshiron ta rezervosh?
@@ -564,18 +558,11 @@ footer {
                                         class="zgjedh-ditet"
                                         required
                                     >
-
                                         <?php for ($i = 1; $i <= 7; $i++): ?>
-
-                                            <option
-                                                value="<?= $i ?>"
-                                                <?= $i === 7 ? "selected" : "" ?>
-                                            >
-                                                <?= $i ?> <?= $i === 1 ? "ditë" : "ditë" ?>
+                                            <option value="<?= $i ?>" <?= $i === 7 ? "selected" : "" ?>>
+                                                <?= $i ?> ditë
                                             </option>
-
                                         <?php endfor; ?>
-
                                     </select>
 
                                     <button
@@ -584,7 +571,7 @@ footer {
                                         value="rezervo"
                                         class="btn-rezervo"
                                     >
-                                        Rezervo librin
+                                        🔖 Rezervo librin
                                     </button>
 
                                 </form>
@@ -597,10 +584,15 @@ footer {
 
                             <?php endif; ?>
 
+                        <?php elseif ($eshteAdmin): ?>
+
+                            <p style="margin-top:15px;color:#173f70;font-weight:bold;">
+                                Pamja e administratorit
+                            </p>
+
                         <?php endif; ?>
 
                     </div>
-
                 </article>
 
             <?php endwhile; ?>
@@ -611,7 +603,7 @@ footer {
 
         <div class="bosh">
             <h2>Nuk ka libra të regjistruar</h2>
-            <p>Kur administratori të shtojë libra, ata do të shfaqen këtu.</p>
+            <p>Kur të shtohen libra, ata do të shfaqen këtu.</p>
         </div>
 
     <?php endif; ?>
@@ -624,4 +616,3 @@ footer {
 
 </body>
 </html>
-
