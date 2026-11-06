@@ -1,23 +1,29 @@
-
-/* =====================================
-   BIBLIOTEKA IME - STYLE.CSS
-   Ngjyrat: Kaltër e errët dhe Ari
-===================================== */
+/* =========================================
+   BIBLIOTEKA IME — STYLE.CSS
+   Dizajn modern: Navy, Gold & Clean White
+   I pershtatur per desktop, tablet dhe telefon.
+========================================= */
 
 :root {
     --navy: #102442;
-    --blue: #173f70;
-    --blue-light: #28649b;
+    --navy-2: #173f70;
+    --blue: #28649b;
+    --blue-soft: #eaf2fb;
     --gold: #d8b66a;
-    --gold-hover: #f0d58b;
+    --gold-light: #f0d58b;
     --white: #ffffff;
-    --background: #f3f6fb;
+    --background: #f4f6fa;
+    --surface: #ffffff;
     --text: #1d2939;
     --muted: #667085;
-    --border: #dce3ed;
+    --border: #e1e7ef;
     --success: #16845b;
-    --danger: #d64545;
-    --shadow: 0 12px 35px rgba(16, 36, 66, 0.12);
+    --danger: #c83e4d;
+    --shadow-sm: 0 4px 14px rgba(16, 36, 66, .07);
+    --shadow: 0 12px 32px rgba(16, 36, 66, .10);
+    --shadow-lg: 0 20px 55px rgba(16, 36, 66, .16);
+    --radius: 16px;
+    --transition: .25s ease;
 }
 
 * {
@@ -31,27 +37,44 @@ html {
 }
 
 body {
+    min-height: 100vh;
     font-family: "Segoe UI", Arial, sans-serif;
     background: var(--background);
     color: var(--text);
-    line-height: 1.6;
+    line-height: 1.65;
 }
 
-/* =====================================
-   HEADER
-===================================== */
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+a {
+    color: var(--blue);
+    transition: color var(--transition);
+}
+
+a:hover {
+    color: var(--navy);
+}
+
+button, input, select, textarea {
+    font: inherit;
+}
+
+/* HEADER / NAVIGATION */
 
 .topbar,
 .site-header {
     width: 100%;
-    min-height: 75px;
+    min-height: 78px;
     padding: 14px 6%;
-    background: linear-gradient(120deg, var(--navy), var(--blue));
+    background: linear-gradient(115deg, #0b1d35, var(--navy-2));
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 20px;
-    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.16);
+    gap: 22px;
+    box-shadow: 0 5px 20px rgba(4, 18, 36, .18);
     position: relative;
     z-index: 10;
 }
@@ -60,498 +83,13 @@ body {
 .logo-link {
     color: var(--gold);
     text-decoration: none;
-    font-size: 23px;
+    font-size: 24px;
     font-weight: 800;
-    letter-spacing: 0.3px;
+    letter-spacing: .4px;
+    white-space: nowrap;
 }
 
 .brand:hover,
 .logo-link:hover {
-    color: var(--gold-hover);
-}
-
-.topbar nav,
-.site-header nav {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.topbar nav a,
-.site-header nav a {
-    color: white;
-    text-decoration: none;
-    padding: 10px 17px;
-    border-radius: 30px;
-    font-weight: 600;
-    transition: 0.3s;
-}
-
-.topbar nav a:hover,
-.site-header nav a:hover {
-    background: rgba(255, 255, 255, 0.13);
-    color: var(--gold);
-}
-
-/* Logo */
-
-.site-logo {
-    width: 48px;
-    height: 48px;
-    object-fit: contain;
-    border-radius: 50%;
-}
-
-/* =====================================
-   BUTTONS
-===================================== */
-
-.btn,
-.button {
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 24px;
-    border: none;
-    border-radius: 30px;
-    background: var(--gold);
-    color: var(--navy);
-    text-decoration: none;
-    font-size: 15px;
-    font-weight: 800;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.btn:hover,
-.button:hover {
-    background: var(--gold-hover);
-    transform: translateY(-2px);
-    box-shadow: 0 7px 18px rgba(216, 182, 106, 0.3);
-}
-
-.btn:active,
-.button:active {
-    transform: scale(0.98);
-}
-
-/* =====================================
-   AUTH - LOGIN & REGISTER
-===================================== */
-
-.auth-container {
-    min-height: calc(100vh - 150px);
-    padding: 55px 20px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    background:
-        linear-gradient(
-            rgba(8, 25, 48, 0.78),
-            rgba(8, 25, 48, 0.78)
-        ),
-        url("images/biblioteka.jpg");
-
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
-}
-
-.auth-card {
-    width: 100%;
-    max-width: 470px;
-    padding: 38px;
-    background: rgba(255, 255, 255, 0.97);
-    border-radius: 20px;
-    box-shadow: 0 20px 55px rgba(0, 0, 0, 0.3);
-    border-top: 5px solid var(--gold);
-    animation: appear 0.5s ease;
-}
-
-.auth-card h1 {
-    color: var(--navy);
-    text-align: center;
-    font-size: 30px;
-    margin-bottom: 8px;
-}
-
-.auth-card > p {
-    text-align: center;
-    color: var(--muted);
-    margin-bottom: 25px;
-}
-
-.auth-card label {
-    display: block;
-    margin: 15px 0 7px;
-    color: var(--navy);
-    font-weight: 700;
-    font-size: 14px;
-}
-
-.auth-card input,
-.auth-card select {
-    width: 100%;
-    padding: 13px 15px;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    background: #f9fbfe;
-    color: var(--text);
-    font-size: 15px;
-    outline: none;
-    transition: 0.25s;
-}
-
-.auth-card input:focus,
-.auth-card select:focus {
-    border-color: var(--blue-light);
-    background: white;
-    box-shadow: 0 0 0 4px rgba(40, 100, 155, 0.12);
-}
-
-.auth-card input::placeholder {
-    color: #98a2b3;
-}
-
-.auth-card button,
-.auth-card .btn {
-    width: 100%;
-    margin-top: 25px;
-    padding: 14px;
-    font-size: 16px;
-}
-
-/* Links inside login/register */
-
-.auth-link {
-    margin-top: 22px !important;
-    margin-bottom: 0 !important;
-    text-align: center;
-    color: var(--muted);
-}
-
-.auth-link a {
-    color: var(--blue);
-    font-weight: 800;
-    text-decoration: none;
-}
-
-.auth-link a:hover {
-    color: var(--gold);
-    text-decoration: underline;
-}
-
-/* =====================================
-   MESSAGES
-===================================== */
-
-.message,
-.notice {
-    padding: 12px 15px;
-    margin: 15px 0;
-    border-radius: 10px;
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.message.success,
-.notice.success {
-    background: #e7f7ef;
-    color: #14734d;
-    border: 1px solid #b8e6cf;
-}
-
-.message.error,
-.message.danger,
-.notice.error,
-.notice.danger {
-    background: #fff0f0;
-    color: #b42318;
-    border: 1px solid #f2c2c2;
-}
-
-/* =====================================
-   MAIN CONTAINER
-===================================== */
-
-.container {
-    width: 90%;
-    max-width: 1250px;
-    margin: 35px auto;
-}
-
-.hero {
-    padding: 45px;
-    border-radius: 18px;
-    background: linear-gradient(120deg, var(--navy), var(--blue-light));
-    color: white;
-    box-shadow: var(--shadow);
-}
-
-.hero h1 {
-    font-size: 32px;
-    color: var(--gold);
-    margin-bottom: 10px;
-}
-
-.hero p {
-    color: #e5edf7;
-}
-
-/* =====================================
-   CARDS
-===================================== */
-
-.cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 22px;
-    margin: 30px 0;
-}
-
-.card {
-    padding: 25px;
-    background: white;
-    border-radius: 16px;
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow);
-    transition: 0.3s;
-}
-
-.card:hover {
-    transform: translateY(-5px);
-    border-color: var(--gold);
-}
-
-.card h2,
-.card h3 {
-    color: var(--navy);
-    margin-bottom: 10px;
-}
-
-.card p {
-    color: var(--muted);
-}
-
-.big {
-    font-size: 32px;
-    font-weight: 800;
-    color: var(--blue);
-}
-
-/* =====================================
-   TABLES
-===================================== */
-
-.table-wrap {
-    width: 100%;
-    overflow-x: auto;
-    background: white;
-    border-radius: 15px;
-    box-shadow: var(--shadow);
-    margin: 25px 0;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 650px;
-}
-
-th {
-    background: var(--navy);
-    color: var(--gold);
-    padding: 15px;
-    text-align: left;
-    font-weight: 700;
-}
-
-td {
-    padding: 14px 15px;
-    border-bottom: 1px solid var(--border);
-}
-
-tr:hover td {
-    background: #f5f8fc;
-}
-
-/* =====================================
-   FORMS
-===================================== */
-
-.form-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 18px;
-}
-
-.form-grid label {
-    display: block;
-    font-weight: 700;
-    color: var(--navy);
-    margin-bottom: 7px;
-}
-
-.form-grid input,
-.form-grid select,
-.form-grid textarea {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid var(--border);
-    border-radius: 9px;
-    font: inherit;
-    outline: none;
-}
-
-.form-grid input:focus,
-.form-grid select:focus,
-.form-grid textarea:focus {
-    border-color: var(--blue-light);
-    box-shadow: 0 0 0 3px rgba(40, 100, 155, 0.1);
-}
-
-/* =====================================
-   BADGES
-===================================== */
-
-.badge {
-    display: inline-block;
-    padding: 6px 13px;
-    border-radius: 30px;
-    font-size: 12px;
-    font-weight: 800;
-}
-
-.badge.success {
-    color: #14734d;
-    background: #e7f7ef;
-}
-
-.badge.danger {
-    color: #b42318;
-    background: #fff0f0;
-}
-
-.badge.admin {
-    color: #76530a;
-    background: #fff2c9;
-}
-
-.badge.worker {
-    color: #17569a;
-    background: #e5f1ff;
-}
-
-.badge.student {
-    color: #14734d;
-    background: #e7f7ef;
-}
-
-/* =====================================
-   ABOUT SECTION
-===================================== */
-
-.about {
-    padding: 35px;
-    margin: 30px 0;
-    background: white;
-    border-radius: 16px;
-    box-shadow: var(--shadow);
-}
-
-.about h2 {
-    color: var(--navy);
-    margin-bottom: 12px;
-}
-
-/* =====================================
-   FOOTER
-===================================== */
-
-footer {
-    width: 100%;
-    padding: 20px;
-    text-align: center;
-    background: var(--navy);
-    color: white;
-}
-
-footer p {
-    margin: 0;
-}
-
-/* =====================================
-   ANIMATION
-===================================== */
-
-@keyframes appear {
-    from {
-        opacity: 0;
-        transform: translateY(15px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* =====================================
-   RESPONSIVE - TELEFON
-===================================== */
-
-@media (max-width: 700px) {
-
-    .topbar,
-    .site-header {
-        flex-direction: column;
-        padding: 18px;
-    }
-
-    .topbar nav,
-    .site-header nav {
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-
-    .brand,
-    .logo-link {
-        font-size: 21px;
-    }
-
-    .auth-container {
-        padding: 30px 15px;
-        background-attachment: scroll;
-    }
-
-    .auth-card {
-        padding: 25px 20px;
-    }
-
-    .auth-card h1 {
-        font-size: 25px;
-    }
-
-    .container {
-        width: 94%;
-        margin: 20px auto;
-    }
-
-    .hero {
-        padding: 25px;
-    }
-
-    .hero h1 {
-        font-size: 25px;
-    }
-
-    .form-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .cards {
-        grid-template-columns: 1fr;
-    }
+    color: var(--gold-light);
 }
