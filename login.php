@@ -1,12 +1,13 @@
-
 <?php
 session_start();
 require_once "db.php";
 
 $mesazhi = "";
+$klasaMesazhit = "";
 
 if (isset($_GET["regjistrimi"]) && $_GET["regjistrimi"] === "sukses") {
     $mesazhi = "Regjistrimi u krye me sukses. Tash mund të hysh.";
+    $klasaMesazhit = "success";
 }
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
@@ -15,10 +16,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     $stmt = $conn->prepare(
         "SELECT id, emri, username, password, roli
-         FROM users WHERE username = ? OR email = ?"
+         FROM users
+         WHERE username = ? OR email = ?"
     );
+
     $stmt->bind_param("ss", $username, $username);
     $stmt->execute();
+
     $rezultati = $stmt->get_result();
     $user = $rezultati->fetch_assoc();
 
@@ -30,26 +34,32 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $_SESSION["username"] = $user["username"];
         $_SESSION["roli"] = $user["roli"];
 
-        header("Location: dashboard.php");
+        $stmt->close();
+
+        header("Location: index.php");
         exit;
     } else {
         $mesazhi = "Emri i përdoruesit/email ose fjalëkalimi është gabim.";
+        $klasaMesazhit = "error";
     }
 
     $stmt->close();
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="sq">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hyr - Biblioteka</title>
+    <title>Hyr - Biblioteka Ime</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
 <header>
     <h2>📚 Biblioteka Ime</h2>
+
     <nav>
         <a href="index.php">Ballina</a>
         <a href="register.php">Regjistrohu</a>
@@ -62,21 +72,39 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         <p>Hyr në llogarinë tënde.</p>
 
         <?php if ($mesazhi !== ""): ?>
-            <p class="message"><?php echo htmlspecialchars($mesazhi); ?></p>
+            <p class="message <?php echo $klasaMesazhit; ?>">
+                <?php echo htmlspecialchars($mesazhi); ?>
+            </p>
         <?php endif; ?>
 
         <label for="username">Emri i përdoruesit ose email</label>
-        <input id="username" type="text" name="username" required>
+        <input
+            id="username"
+            type="text"
+            name="username"
+            autocomplete="username"
+            required
+        >
 
         <label for="password">Fjalëkalimi</label>
-        <input id="password" type="password" name="password" required>
+        <input
+            id="password"
+            type="password"
+            name="password"
+            autocomplete="current-password"
+            required
+        >
 
         <button type="submit" class="btn">Hyr</button>
 
-        <p class="auth-link">Nuk ke llogari?
+        <p class="auth-link">
+            Nuk ke llogari?
             <a href="register.php">Regjistrohu këtu</a>
         </p>
     </form>
 </main>
+
 </body>
 </html>
+
+
