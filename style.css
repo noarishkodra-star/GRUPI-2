@@ -635,3 +635,40 @@ footer p {
         transition-duration: .01ms !important;
     }
 }
+
+/* HEADER - PERMIRESIMI FINAL */
+
+header.topbar {
+    min-height: 85px;
+    padding: 12px 6%;
+    border-bottom: 3px solid var(--gold);
+}
+
+header.topbar .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 26px;
+}
+
+header.topbar .site-logo {
+    width: 55px;
+    height: 55px;
+    object-fit: contain;
+}
+
+header.topbar nav a {
+    font-size: 15px;
+    padding: 11px 20px;
+}
+
+header.topbar nav a:last-child {
+    background: var(--gold);
+    color: var(--navy);
+    font-weight: 800;
+}
+
+header.topbar nav a:last-child:hover {
+    background: var(--gold-light);
+    transform: translateY(-2px);
+}
