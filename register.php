@@ -1,4 +1,3 @@
-
 <?php
 require_once "db.php";
 
@@ -6,7 +5,6 @@ $mesazhi = "";
 $emri = "";
 $username = "";
 $email = "";
-$roli = "";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
@@ -14,14 +12,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $username = trim($_POST["username"] ?? "");
     $email = trim($_POST["email"] ?? "");
     $password = $_POST["password"] ?? "";
-    $roli = $_POST["roli"] ?? "";
+
+    // Çdo regjistrim i ri ruhet si nxënës
+    $roli = "nxenes/e";
 
     if (
         $emri === "" ||
         $username === "" ||
         $email === "" ||
-        $password === "" ||
-        $roli === ""
+        $password === ""
     ) {
         $mesazhi = "Plotëso të gjitha fushat.";
 
@@ -31,19 +30,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     } elseif (strlen($password) < 8) {
         $mesazhi = "Fjalëkalimi duhet t'i ketë së paku 8 karaktere.";
 
-    } elseif (!in_array($roli, ["nxenes/e", "punetor/e"], true)) {
-        $mesazhi = "Roli i zgjedhur nuk lejohet.";
-
     } else {
 
-        $kontrollo = $conn->prepare(
-            "SELECT id FROM users WHERE username = ? OR email = ?"
-        );
-
-        if (!$kontrollo) {
-            $mesazhi = "Gabim gjatë kontrollimit të të dhënave.";
-
-        } else {
+        try {
+            $kontrollo = $conn->prepare(
+                "SELECT id FROM users WHERE username = ? OR email = ?"
+            );
 
             $kontrollo->bind_param("ss", $username, $email);
             $kontrollo->execute();
@@ -64,37 +56,34 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     VALUES (?, ?, ?, ?, ?)"
                 );
 
-                if ($shto) {
+                $shto->bind_param(
+                    "sssss",
+                    $emri,
+                    $username,
+                    $email,
+                    $hash,
+                    $roli
+                );
 
-                    $shto->bind_param(
-                        "sssss",
-                        $emri,
-                        $username,
-                        $email,
-                        $hash,
-                        $roli
-                    );
-
-                    if ($shto->execute()) {
-
-                        $shto->close();
-                        $kontrollo->close();
-
-                        header("Location: login.php?regjistrimi=sukses");
-                        exit;
-
-                    } else {
-                        $mesazhi = "Regjistrimi dështoi. Provo përsëri.";
-                    }
+                if ($shto->execute()) {
 
                     $shto->close();
+                    $kontrollo->close();
+
+                    header("Location: login.php?regjistrimi=sukses");
+                    exit;
 
                 } else {
-                    $mesazhi = "Gabim gjatë regjistrimit.";
+                    $mesazhi = "Regjistrimi dështoi. Provo përsëri.";
                 }
+
+                $shto->close();
             }
 
             $kontrollo->close();
+
+        } catch (Throwable $e) {
+            $mesazhi = "Ndodhi një gabim gjatë regjistrimit. Kontrollo databazën.";
         }
     }
 }
@@ -102,64 +91,41 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 <!DOCTYPE html>
 <html lang="sq">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Regjistrohu - Biblioteka Ime</title>
-
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-<!-- HEADER -->
-
 <header class="topbar">
-
     <a href="index.php" class="brand">
-
-        <img
-            src="images/logo.png"
-            alt="Biblioteka Ime"
-            class="site-logo"
-        >
-
+        <img src="images/logo.png" alt="Biblioteka Ime" class="site-logo">
         <span>Biblioteka Ime</span>
-
     </a>
 
     <nav>
         <a href="index.php">Ballina</a>
         <a href="login.php">Hyr</a>
     </nav>
-
 </header>
-
-
-<!-- REGJISTRIMI -->
 
 <main class="auth-container">
 
     <form class="auth-card" method="POST" action="register.php">
 
         <h1>Krijo llogari</h1>
-
         <p>Regjistrohu në sistemin e bibliotekës.</p>
 
-
         <?php if ($mesazhi !== ""): ?>
-
             <div class="message danger">
                 <?= htmlspecialchars($mesazhi, ENT_QUOTES, 'UTF-8') ?>
             </div>
-
         <?php endif; ?>
 
-
         <label for="emri">Emri i plotë</label>
-
         <input
             type="text"
             id="emri"
@@ -171,9 +137,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             required
         >
 
-
         <label for="username">Emri i përdoruesit</label>
-
         <input
             type="text"
             id="username"
@@ -185,9 +149,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             required
         >
 
-
         <label for="email">Email</label>
-
         <input
             type="email"
             id="email"
@@ -199,32 +161,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             required
         >
 
-
-        <label for="roli">Regjistrohu si</label>
-
-        <select id="roli" name="roli" required>
-
-            <option value="">-- Zgjedh rolin --</option>
-
-            <option
-                value="nxenes/e"
-                <?= $roli === "nxenes/e" ? "selected" : "" ?>
-            >
-                Nxënës
-            </option>
-
-            <option
-                value="punetor/e"
-                <?= $roli === "punetor/e" ? "selected" : "" ?>
-            >
-                Punëtor/e
-            </option>
-
-        </select>
-
+        <label>Roli</label>
+        <input type="text" value="Nxënës" disabled>
 
         <label for="password">Fjalëkalimi</label>
-
         <input
             type="password"
             id="password"
@@ -235,11 +175,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             required
         >
 
-
         <button type="submit" class="btn">
             Regjistrohu
         </button>
-
 
         <p class="auth-link">
             Ke llogari?
@@ -249,9 +187,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     </form>
 
 </main>
-
-
-<!-- FOOTER -->
 
 <footer>
     <p>© 2026 Biblioteka Ime</p>
